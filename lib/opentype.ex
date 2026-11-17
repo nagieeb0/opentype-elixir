@@ -123,6 +123,31 @@ defmodule OpenType do
   If the language tag is not specified, it will follow the spec and fall back to the default language.
   """
   def layout_text(ttf, text, features \\ nil, script \\ nil, lang \\ nil) do
+    # Fork change (Matheel): layout is a pure function of the font and the text, and re-parsing GPOS lookups on
+    # every call dominates rendering. When the host app owns an ETS table named :opentype_layout_cache, results
+    # are memoized there; without it nothing changes. ponytail: the cache is cleared at 50k entries, an LRU if
+    # memory ever matters.
+    case :ets.whereis(:opentype_layout_cache) do
+      :undefined ->
+        do_layout_text(ttf, text, features, script, lang)
+
+      table ->
+        key = {ttf.name, ttf.version, text, features, script, lang}
+
+        case :ets.lookup(table, key) do
+          [{_, hit}] ->
+            hit
+
+          [] ->
+            result = do_layout_text(ttf, text, features, script, lang)
+            if :ets.info(table, :size) >= 50_000, do: :ets.delete_all_objects(table)
+            :ets.insert(table, {key, result})
+            result
+        end
+    end
+  end
+
+  defp do_layout_text(ttf, text, features, script, lang) do
     # use the font CMAP to convert the initial text
     # into a series of glyphs
     glyphs =

@@ -1,3 +1,5 @@
+> **Fork of [opentype](https://hex.pm/packages/opentype) 0.5.1** (Apache 2.0, by jbowtie). One change: `OpenType.layout_text/5` memoizes its result in an ETS table named `:opentype_layout_cache` when the host app creates one (4x faster repeated layout in [Matheel](https://matheel.app)'s invoice PDFs). Without that table it behaves exactly like 0.5.1.
+
 # OpenType
 
 [![pipeline status](https://gitlab.com/jbowtie/opentype-elixir/badges/master/pipeline.svg)](https://gitlab.com/jbowtie/opentype-elixir/commits/master)
